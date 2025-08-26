@@ -1,0 +1,3 @@
+#!/bin/bash
+
+history | tail -n 5 > task_commands.sh

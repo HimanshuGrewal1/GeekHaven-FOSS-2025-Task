@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Playlist Analyzer</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        input, button, select { width: 100%; padding: 10px; margin: 5px 0; }
+        .dark-mode { background-color: #333; color: white; }
+        .video-list img { width: 100px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>YouTube Playlist Analyzer</h2>
+        <input type="text" id="playlistUrl" placeholder="Enter YouTube Playlist URL">
+        <button onclick="fetchPlaylistData()">Analyze</button>
+        <button onclick="toggleDarkMode()">Toggle Dark Mode</button>
+        <h3>Results:</h3>
+        <p id="totalVideos"></p>
+        <p id="totalDuration"></p>
+        <p id="averageDuration"></p>
+        <label>Playback Speed: 
+            <select id="speed" onchange="updateTimeBasedOnSpeed()">
+                <option value="1">1x</option>
+                <option value="1.5">1.5x</option>
+                <option value="2">2x</option>
+            </select>
+        </label>
+        <p id="adjustedDuration"></p>
+        <h3>Videos:</h3>
+        <div id="videoList" class="video-list"></div>
+        <button onclick="exportCSV()">Export CSV</button>
+        <button onclick="exportJSON()">Export JSON</button>
+    </div>
+
+    <script>
+        async function fetchPlaylistData() {
+            const url = document.getElementById('playlistUrl').value;
+            const playlistId = url.match(/[?&]list=([a-zA-Z0-9_-]+)/);
+            if (!playlistId) return alert("Invalid Playlist URL");
+            
+            const API_KEY = 'AIzaSyD_nVM_si9zYx02OTRspoVzFKWQOdJd1sI';
+            let nextPageToken = '';
+            let videos = [];
+            let totalDuration = 0;
+
+            do {
+                const playlistAPI = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&maxResults=50&pageToken=${nextPageToken}&playlistId=${playlistId[1]}&key=${API_KEY}`;
+                let response = await fetch(playlistAPI);
+                let data = await response.json();
+                
+                for (let item of data.items) {
+                    let title = item.snippet.title;
+                    let thumbnail = item.snippet.thumbnails.default.url;
+                    let videoId = item.contentDetails.videoId;
+                    
+                    videos.push({ title, thumbnail, videoId });
+                    totalDuration += 300; // Placeholder for actual duration (API call needed)
+                }
+                nextPageToken = data.nextPageToken || '';
+            } while (nextPageToken);
+            
+            document.getElementById('totalVideos').innerText = `Total Videos: ${videos.length}`;
+            document.getElementById('totalDuration').innerText = `Total Duration: ${formatDuration(totalDuration)}`;
+            document.getElementById('averageDuration').innerText = `Average Video Length: ${formatDuration(totalDuration / videos.length)}`;
+            displayVideos(videos);
+        }
+        
+        function formatDuration(seconds) {
+            let h = Math.floor(seconds / 3600);
+            let m = Math.floor((seconds % 3600) / 60);
+            let s = seconds % 60;
+            return `${h}h ${m}m ${s}s`;
+        }
+        
+        function displayVideos(videos) {
+            const list = document.getElementById('videoList');
+            list.innerHTML = '';
+            videos.forEach(v => {
+                list.innerHTML += `<div><img src="${v.thumbnail}" /> ${v.title}</div>`;
+            });
+        }
+        
+        function updateTimeBasedOnSpeed() {
+            let speed = document.getElementById('speed').value;
+            let totalSeconds = 10000; // Placeholder for total duration
+            document.getElementById('adjustedDuration').innerText = `Adjusted Time: ${formatDuration(totalSeconds / speed)}`;
+        }
+        
+        function exportCSV() {
+            let csv = "Title\n" + videos.map(v => v.title).join("\n");
+            downloadFile(csv, 'playlist.csv');
+        }
+        
+        function exportJSON() {
+            let json = JSON.stringify(videos, null, 2);
+            downloadFile(json, 'playlist.json');
+        }
+        
+        function downloadFile(content, filename) {
+            let blob = new Blob([content], { type: 'text/plain' });
+            let a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            a.click();
+        }
+        
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+        }
+    </script>
+</body>
+</html>

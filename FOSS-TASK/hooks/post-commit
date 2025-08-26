@@ -1,0 +1,3 @@
+#!/bin/bash
+echo "wljnef"
+echo "Commit: $(git log -1 --pretty=format:'%s by %an <%ae>')" >> commit_details.txt
